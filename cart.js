@@ -61,12 +61,9 @@ res.json(things);
 
 // accept POST request at URI: /cart
 cart.post("/", (req, res) => {
-  const getLastId = cartList.length +1;
-   
-    console.log(req.body.product);
-    // console.log(newItem);  
+  
   const newItem = {
-    id: getLastId,
+    id: cartList.length+1,
     product: req.body.product,
     quantity: parseInt(req.body.quantity),
     price: parseInt(req.body.price)
@@ -95,9 +92,9 @@ cart.put("/:id", (req, res) => {
   item.product = req.body.product;
 
   res.status(200);
-  res.json(cartList);
-
-  res.send("Updating the cart item..");
+  res.json(cartList[id]);
+  
+  
 });
 
 // accept DELETE request at URI: /cart
