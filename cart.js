@@ -61,8 +61,21 @@ res.json(things);
 
 // accept POST request at URI: /cart
 cart.post("/", (req, res) => {
-    const newItem = req.body;
-    console.log(newItem);
+  const getLastId = cartList.length +1;
+   
+    console.log(req.body.product);
+    // console.log(newItem);  
+  const newItem = {
+    id: getLastId,
+    product: req.body.product,
+    quantity: parseInt(req.body.quantity),
+    price: parseInt(req.body.price)
+  }
+  
+  // newItem.id = getLastId;
+  // newItem.product=req.body.product;
+  // console.log("New item ?" + newItem.product);
+    
     
     cartList.push(newItem);
     
@@ -84,7 +97,7 @@ cart.put("/:id", (req, res) => {
   res.status(200);
   res.json(cartList);
 
-  res.json("Updating the cart item..");
+  res.send("Updating the cart item..");
 });
 
 // accept DELETE request at URI: /cart
