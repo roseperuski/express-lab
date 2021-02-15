@@ -28,8 +28,8 @@ cart.get("/", (req, res) => {
 //     }); 
 //   }
   else if(pageSize){
-    if (pageSize > cartList.length+1){
-        return 
+    if (pageSize < cartList.length+1){
+       // return 
     }
   }
   else {
@@ -44,14 +44,14 @@ cart.get("/", (req, res) => {
 cart.get("/:id", (req, res) => {
 
  const id = parseInt(req.params.id);
-  console.log("id is "+ id);
+  //console.log("id is "+ id);
 
   const things = cartList.find( (thing) => {
     if (thing.id === id){
-        console.log(`this is thing: ${thing}`)
+        //console.log(`this is thing: ${thing}`)
         return thing;
     } else {
-       // res.status(404);
+       res.status(404).send('ID not found');
     }
 })
 
