@@ -1,5 +1,7 @@
+const { request } = require("express");
 const express = require("express");
 const cart = express.Router();
+const pool = require('./pg-connection-pool');
 
 //logic for endpoints
 const cartList = [
@@ -10,104 +12,112 @@ const cartList = [
 ];
 
 cart.get("/", (req, res) => {
-  const maxPrice = req.query.maxPrice;
-  const prefix = req.query.prefix;
-  const pageSize = req.query.pageSize;
-  let items =cartList;
-
-
-  if (maxPrice) { 
-    items = cartList.filter( (item) => {
-        return item.price <= maxPrice;
-    });
-    res.json(items);
-  } 
-//else if(prefix){
-//     items = cartList.filter( (item) => {
-//         return item.price <= maxPrice;
-//     }); 
-//   }
-  else if(pageSize){
-    if (pageSize < cartList.length+1){
-       // return 
-    }
+  let items = [];  
+  pool.query("SELECT * FROM shopping_cart;").then( (results) => {
+    items = results.rows  
+    console.log(items);
+    // res.json(results.rows);
+  let filteredItems = items
+  if (req.query) {
+     if (req.query.maxPrice) {
+         filteredItems = filteredItems.filter(
+             (filteredItems) => filteredItems.price < parseFloat(req.query.maxPrice)
+         );
+     }
+     if (req.query.prefix) {
+         filteredItems = fileredItems.filter((i) =>
+         i.product.startsWith(req.query.prefix)
+         );
+     }
+     if (req.query.pageSize) {
+         filteredItems = filteredItems.slice(0, parseInt(req.query.pageSize));
+     }
+    //  res.status(200).send(filteredItems);
   }
-  else {
-    // res.status(404);
-    // res.json("Not found");
-  }
-  // res.status(200);
- // console.log(items);
-  res.json(items);
-});
+res.json(filteredItems);
+})
+})
+// cart.get("/", (req, res) => {
+  
+//   // pool.query("SELECT * FROM shopping_cart;").then( (results) => {
+//   //       res.json(results.rows);
+//   //       res.status(200);
+//   //   })
+//   // const maxPrice = req.query.maxPrice;
+//   // const prefix = req.query.prefix;
+//   // const pageSize = req.query.pageSize;
+//   // if (req.query){
+//   //   if (req.query.maxPrice){
+//   //     pool.query("SELECT * FROM shopping_cart WHERE price < $1;" [req.query.maxPrice]).then( (results) => {
+//   //       res.json(results.rows);
+//   //       res.status(200);
+//   //   })
+//   //   }
+//   // } else {
+//   //   pool.query("SELECT * FROM shopping_cart;").then( (results) => {
+//   //     res.json(results.rows);
+//   //     res.status(200);
+//   // })
+//   // }
+   
+// });
 
 cart.get("/:id", (req, res) => {
 
  const id = parseInt(req.params.id);
-  //console.log("id is "+ id);
-
-  const things = cartList.find( (thing) => {
-    if (thing.id === id){
-        //console.log(`this is thing: ${thing}`)
-        return thing;
-    } else {
-       res.status(404).send('ID not found');
-    }
+ pool.query("SELECT * FROM shopping_cart WHERE id=$1;", [id]).then( (results) => {
+  const items = results.rows;
+        if (!items.length) {
+            res.status(404).json('Not found');
+        } else {
+            res.json(items);
+        }
 })
 
-res.json(things);
-
-});
+ 
+})
 
 // accept POST request at URI: /cart
-cart.post("/", (req, res) => {
-  
-  const newItem = {
-    id: cartList.length+1,
-    product: req.body.product,
-    quantity: parseInt(req.body.quantity),
-    price: parseInt(req.body.price)
-  }
-  
-  // newItem.id = getLastId;
-  // newItem.product=req.body.product;
-  // console.log("New item ?" + newItem.product);
-    
-    
-    cartList.push(newItem);
-    
-    res.status(201); // return 201 status code
-    res.json(cartList) // return changed list
+cart.post('/', (req, res) => {
+	// Get item from body
+	const newItem = req.body;
+	// Add to array
+	// routes.push(newItem);
+	pool.query('INSERT INTO shopping_cart (product, price, quantity) VALUES ($1, $2, $3);', [
+		newItem.product,
+		newItem.price,
+    newItem.quantity
+	]).then( () => {
+        res.status(201); // return 201 status code
+        res.json(newItem);
+    })
 });
 
 
 cart.put("/:id", (req, res) => {
   
   const id = parseInt(req.params.id);
-  const index = cartList.findIndex((i) => i.id === id);
-  console.log(index);
-  const item = cartList[index];
-  item.price= req.body.price;
-  item.quantity = req.body.quantity;
-  item.product = req.body.product;
-
-  res.status(200);
-  res.json(cartList[id]);
-  
-  
+  const item=req.body;
+  pool.query('UPDATE shopping_cart SET product=$1, price=$2, quantity=$3 WHERE id=$4 RETURNING *;' , 
+  [
+		item.product,
+    item.price,
+		item.quantity,
+    id
+	]).then( (results) => {
+        res.status(201); // return 201 status code
+        res.json(results.rows);
+    })
 });
 
 // accept DELETE request at URI: /cart
 cart.delete("/:id", (req, res) => {
     const id = parseInt(req.params.id);
-    const index = cartList.findIndex( (item) => {
-        return item.id === id;
-    })
-
-    cartList.splice(index, 1);
-    res.status(204);
-    //console.log(cartList);
-    res.json(cartList);
+    pool.query("DELETE FROM shopping_cart WHERE id=$1;", [id]).then( (results) => {
+      res.json(results.rows);
+      res.status(200);
+  })
+    
   
 });
 
